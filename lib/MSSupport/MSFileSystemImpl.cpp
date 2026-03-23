@@ -27,6 +27,9 @@
 #include <sys/types.h>
 
 #include "dxc/Support/WinIncludes.h"
+#ifdef _WIN32
+#include <fileapi.h>
+#endif
 #include "dxc/WinAdapter.h"
 #include "llvm/Support/MSFileSystem.h"
 
@@ -127,7 +130,11 @@ public:
 
 MSFileSystemForDisk::MSFileSystemForDisk() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   _defaultAttributes = GetConsoleOutputTextAttributes();
+#else
+  _defaultAttributes = 0;
+#endif
 #endif
 }
 
@@ -145,7 +152,12 @@ HANDLE
 MSFileSystemForDisk::FindFirstFileW(LPCWSTR lpFileName,
                                     LPWIN32_FIND_DATAW lpFindFileData) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::FindFirstFileW(lpFileName, lpFindFileData);
+#else
+  return ::FindFirstFileExW(lpFileName, FindExInfoBasic, lpFindFileData,
+                            FindExSearchNameMatch, nullptr, 0);
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return nullptr;
@@ -166,8 +178,17 @@ HANDLE MSFileSystemForDisk::CreateFileW(LPCWSTR lpFileName,
                                         DWORD dwCreationDisposition,
                                         DWORD dwFlagsAndAttributes) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, nullptr,
                        dwCreationDisposition, dwFlagsAndAttributes, nullptr);
+#else
+  CREATEFILE2_EXTENDED_PARAMETERS params = {};
+  params.dwSize = sizeof(params);
+  params.dwFileAttributes = dwFlagsAndAttributes & 0xFFFFu;
+  params.dwFileFlags = dwFlagsAndAttributes & 0xFFF00000u;
+  return ::CreateFile2(lpFileName, dwDesiredAccess, dwShareMode,
+                       dwCreationDisposition, &params);
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return nullptr;
@@ -179,8 +200,12 @@ BOOL MSFileSystemForDisk::SetFileTime(HANDLE hFile,
                                       const FILETIME *lpLastAccessTime,
                                       const FILETIME *lpLastWriteTime) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::SetFileTime(hFile, lpCreationTime, lpLastAccessTime,
                        lpLastWriteTime);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -190,7 +215,11 @@ BOOL MSFileSystemForDisk::SetFileTime(HANDLE hFile,
 BOOL MSFileSystemForDisk::GetFileInformationByHandle(
     HANDLE hFile, LPBY_HANDLE_FILE_INFORMATION lpFileInformation) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::GetFileInformationByHandle(hFile, lpFileInformation);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -200,7 +229,11 @@ BOOL MSFileSystemForDisk::GetFileInformationByHandle(
 DWORD
 MSFileSystemForDisk::GetFileType(HANDLE hFile) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::GetFileType(hFile);
+#else
+  return FILE_TYPE_UNKNOWN;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return 0;
@@ -210,7 +243,11 @@ MSFileSystemForDisk::GetFileType(HANDLE hFile) throw() {
 BOOL MSFileSystemForDisk::CreateHardLinkW(LPCWSTR lpFileName,
                                           LPCWSTR lpExistingFileName) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::CreateHardLinkW(lpFileName, lpExistingFileName, nullptr);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -221,7 +258,11 @@ BOOL MSFileSystemForDisk::MoveFileExW(LPCWSTR lpExistingFileName,
                                       LPCWSTR lpNewFileName,
                                       DWORD dwFlags) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -231,7 +272,14 @@ BOOL MSFileSystemForDisk::MoveFileExW(LPCWSTR lpExistingFileName,
 DWORD
 MSFileSystemForDisk::GetFileAttributesW(LPCWSTR lpFileName) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::GetFileAttributesW(lpFileName);
+#else
+  WIN32_FILE_ATTRIBUTE_DATA data;
+  if (!::GetFileAttributesExW(lpFileName, GetFileExInfoStandard, &data))
+    return INVALID_FILE_ATTRIBUTES;
+  return data.dwFileAttributes;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return 0;
@@ -249,7 +297,11 @@ BOOL MSFileSystemForDisk::CloseHandle(HANDLE hObject) throw() {
 
 BOOL MSFileSystemForDisk::DeleteFileW(LPCWSTR lpFileName) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::DeleteFileW(lpFileName);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -258,7 +310,11 @@ BOOL MSFileSystemForDisk::DeleteFileW(LPCWSTR lpFileName) throw() {
 
 BOOL MSFileSystemForDisk::RemoveDirectoryW(LPCWSTR lpFileName) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::RemoveDirectoryW(lpFileName);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -267,7 +323,11 @@ BOOL MSFileSystemForDisk::RemoveDirectoryW(LPCWSTR lpFileName) throw() {
 
 BOOL MSFileSystemForDisk::CreateDirectoryW(LPCWSTR lpPathName) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::CreateDirectoryW(lpPathName, nullptr);
+#else
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -277,7 +337,11 @@ BOOL MSFileSystemForDisk::CreateDirectoryW(LPCWSTR lpPathName) throw() {
 DWORD MSFileSystemForDisk::GetCurrentDirectoryW(DWORD nBufferLength,
                                                 LPWSTR lpBuffer) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::GetCurrentDirectoryW(nBufferLength, lpBuffer);
+#else
+  return 0;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return 0;
@@ -287,6 +351,7 @@ DWORD MSFileSystemForDisk::GetCurrentDirectoryW(DWORD nBufferLength,
 DWORD MSFileSystemForDisk::GetMainModuleFileNameW(LPWSTR lpFilename,
                                                   DWORD nSize) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   // Add some code to ensure that the result is null terminated.
   if (nSize <= 1) {
     ::SetLastError(ERROR_INSUFFICIENT_BUFFER);
@@ -299,6 +364,11 @@ DWORD MSFileSystemForDisk::GetMainModuleFileNameW(LPWSTR lpFilename,
   lpFilename[result] = L'\0';
   return result;
 #else
+  // GetModuleFileNameW is not available in UWP.
+  ::SetLastError(ERROR_NOT_SUPPORTED);
+  return 0;
+#endif
+#else
   assert(false && "Not implemented for Unix");
   return 0;
 #endif
@@ -307,6 +377,9 @@ DWORD MSFileSystemForDisk::GetMainModuleFileNameW(LPWSTR lpFilename,
 DWORD MSFileSystemForDisk::GetTempPathW(DWORD nBufferLength,
                                         LPWSTR lpBuffer) throw() {
 #ifdef _WIN32
+  // GetTempPathW is available in both WINAPI_PARTITION_DESKTOP and
+  // WINAPI_PARTITION_APP (UWP). GetTempPath2W is a newer desktop-only API
+  // not reliably present in all SDK import libraries for UWP targets.
   return ::GetTempPathW(nBufferLength, lpBuffer);
 #else
   assert(false && "Not implemented for Unix");
@@ -315,6 +388,7 @@ DWORD MSFileSystemForDisk::GetTempPathW(DWORD nBufferLength,
 }
 
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 namespace {
 typedef BOOLEAN(WINAPI *PtrCreateSymbolicLinkW)(
     /*__in*/ LPCWSTR lpSymlinkFileName,
@@ -325,13 +399,19 @@ PtrCreateSymbolicLinkW create_symbolic_link_api =
     PtrCreateSymbolicLinkW(::GetProcAddress(::GetModuleHandleW(L"Kernel32.dll"),
                                             "CreateSymbolicLinkW"));
 } // namespace
+#endif // WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #endif
 
 BOOLEAN MSFileSystemForDisk::CreateSymbolicLinkW(LPCWSTR lpSymlinkFileName,
                                                  LPCWSTR lpTargetFileName,
                                                  DWORD dwFlags) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return create_symbolic_link_api(lpSymlinkFileName, lpTargetFileName, dwFlags);
+#else
+  // CreateSymbolicLinkW is not available in UWP.
+  return FALSE;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -340,7 +420,11 @@ BOOLEAN MSFileSystemForDisk::CreateSymbolicLinkW(LPCWSTR lpSymlinkFileName,
 
 bool MSFileSystemForDisk::SupportsCreateSymbolicLink() throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return create_symbolic_link_api != nullptr;
+#else
+  return false;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -363,8 +447,13 @@ HANDLE MSFileSystemForDisk::CreateFileMappingW(HANDLE hFile, DWORD flProtect,
                                                DWORD dwMaximumSizeHigh,
                                                DWORD dwMaximumSizeLow) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::CreateFileMappingW(hFile, nullptr, flProtect, dwMaximumSizeHigh,
                               dwMaximumSizeLow, nullptr);
+#else
+  ULONG64 maxSize = ((ULONG64)dwMaximumSizeHigh << 32) | dwMaximumSizeLow;
+  return ::CreateFileMappingFromApp(hFile, nullptr, flProtect, maxSize, nullptr);
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return nullptr;
@@ -377,8 +466,14 @@ LPVOID MSFileSystemForDisk::MapViewOfFile(HANDLE hFileMappingObject,
                                           DWORD dwFileOffsetLow,
                                           SIZE_T dwNumberOfBytesToMap) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   return ::MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh,
                          dwFileOffsetLow, dwNumberOfBytesToMap);
+#else
+  ULONG64 offset = ((ULONG64)dwFileOffsetHigh << 32) | dwFileOffsetLow;
+  return ::MapViewOfFileFromApp(hFileMappingObject, dwDesiredAccess, offset,
+                                dwNumberOfBytesToMap);
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return nullptr;
@@ -396,8 +491,12 @@ BOOL MSFileSystemForDisk::UnmapViewOfFile(LPCVOID lpBaseAddress) throw() {
 
 bool MSFileSystemForDisk::FileDescriptorIsDisplayed(int fd) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   DWORD Mode; // Unused
   return (GetConsoleMode((HANDLE)_get_osfhandle(fd), &Mode) != 0);
+#else
+  return false;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return false;
@@ -406,11 +505,15 @@ bool MSFileSystemForDisk::FileDescriptorIsDisplayed(int fd) throw() {
 
 unsigned MSFileSystemForDisk::GetColumnCount(DWORD nStdHandle) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   unsigned Columns = 0;
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   if (::GetConsoleScreenBufferInfo(GetStdHandle(nStdHandle), &csbi))
     Columns = csbi.dwSize.X;
   return Columns;
+#else
+  return 0;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return 0;
@@ -419,10 +522,14 @@ unsigned MSFileSystemForDisk::GetColumnCount(DWORD nStdHandle) throw() {
 
 unsigned MSFileSystemForDisk::GetConsoleOutputTextAttributes() throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   if (::GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi))
     return csbi.wAttributes;
   return 0;
+#else
+  return 0;
+#endif
 #else
   assert(false && "Not implemented for Unix");
   return 0;
@@ -432,7 +539,11 @@ unsigned MSFileSystemForDisk::GetConsoleOutputTextAttributes() throw() {
 void MSFileSystemForDisk::SetConsoleOutputTextAttributes(
     unsigned attributes) throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   ::SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), attributes);
+#else
+  (void)attributes; // Console text attributes not supported in UWP.
+#endif
 #else
   assert(false && "Not implemented for Unix");
 #endif
@@ -440,8 +551,12 @@ void MSFileSystemForDisk::SetConsoleOutputTextAttributes(
 
 void MSFileSystemForDisk::ResetConsoleOutputTextAttributes() throw() {
 #ifdef _WIN32
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   ::SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
                             _defaultAttributes);
+#else
+  // Console text attributes not supported in UWP.
+#endif
 #else
   assert(false && "Not implemented for Unix");
 #endif

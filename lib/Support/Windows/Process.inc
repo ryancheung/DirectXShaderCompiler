@@ -82,6 +82,7 @@ unsigned Process::getPageSize() {
 size_t
 Process::GetMallocUsage()
 {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   _HEAPINFO hinfo;
   hinfo._pentry = NULL;
 
@@ -91,6 +92,9 @@ Process::GetMallocUsage()
     size += hinfo._size;
 
   return size;
+#else
+  return 0;
+#endif
 }
 
 void Process::GetTimeUsage(TimeValue &elapsed, TimeValue &user_time,
@@ -110,6 +114,7 @@ void Process::GetTimeUsage(TimeValue &elapsed, TimeValue &user_time,
 // their operation. To prevent the disk from filling up, this configuration
 // item does what's necessary to prevent their generation.
 void Process::PreventCoreFiles() {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   // Windows does have the concept of core files, called minidumps.  However,
   // disabling minidumps for a particular application extends past the lifetime
   // of that application, which is the incorrect behavior for this API.
@@ -123,6 +128,7 @@ void Process::PreventCoreFiles() {
   SetErrorMode(SEM_FAILCRITICALERRORS |
                SEM_NOGPFAULTERRORBOX |
                SEM_NOOPENFILEERRORBOX);
+#endif
 }
 
 /// Returns the environment variable \arg Name's value as a string encoded in

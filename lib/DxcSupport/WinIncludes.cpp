@@ -13,7 +13,9 @@
 #include "assert.h"
 #include "dxc/Support/microcom.h"
 
-#if defined(_WIN32) && !defined(DXC_DISABLE_ALLOCATOR_OVERRIDES)
+#if defined(_WIN32) && !defined(DXC_DISABLE_ALLOCATOR_OVERRIDES) &&           \
+    (!defined(WINAPI_FAMILY) ||                                                \
+     WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP))
 // CoGetMalloc from combaseapi.h is used
 #else
 struct DxcCoMalloc : public IMalloc {

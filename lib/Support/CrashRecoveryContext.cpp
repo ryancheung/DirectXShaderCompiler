@@ -193,8 +193,10 @@ void CrashRecoveryContext::Enable() {
   // handler as the front of the list, though there's no assurances that
   // it will remain at the front (another call could install itself before
   // our handler).  This 1) isn't likely, and 2) shouldn't cause problems.
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   PVOID handle = ::AddVectoredExceptionHandler(1, ExceptionHandler);
   sCurrentExceptionHandle.set(handle);
+#endif
 }
 
 void CrashRecoveryContext::Disable() {
@@ -205,6 +207,7 @@ void CrashRecoveryContext::Disable() {
 
   gCrashRecoveryEnabled = false;
 
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
   PVOID currentHandle = const_cast<PVOID>(sCurrentExceptionHandle.get());
   if (currentHandle) {
     // Now we can remove the vectored exception handler from the chain
@@ -213,6 +216,7 @@ void CrashRecoveryContext::Disable() {
     // Reset the handle in our thread-local set.
     sCurrentExceptionHandle.set(NULL);
   }
+#endif
 }
 
 #else

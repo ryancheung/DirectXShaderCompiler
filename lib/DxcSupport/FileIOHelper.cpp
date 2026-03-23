@@ -75,8 +75,8 @@ IMalloc *GetGlobalHeapMalloc() throw() { return &g_HeapMalloc; }
 
 HRESULT ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
                        DWORD *pDataSize) throw() {
-  HANDLE hFile = CreateFileW(pFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
-                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  HANDLE hFile = DxcCreateFileW(pFileName, GENERIC_READ, FILE_SHARE_READ,
+                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL);
   if (hFile == INVALID_HANDLE_VALUE) {
     return HRESULT_FROM_WIN32(GetLastError());
   }
@@ -117,8 +117,8 @@ HRESULT ReadBinaryFile(LPCWSTR pFileName, void **ppData,
 
 HRESULT WriteBinaryFile(LPCWSTR pFileName, const void *pData,
                         DWORD DataSize) throw() {
-  HANDLE hFile = CreateFileW(pFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-                             FILE_ATTRIBUTE_NORMAL, nullptr);
+  HANDLE hFile = DxcCreateFileW(pFileName, GENERIC_WRITE, 0,
+                                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL);
   if (hFile == INVALID_HANDLE_VALUE) {
     return HRESULT_FROM_WIN32(GetLastError());
   }

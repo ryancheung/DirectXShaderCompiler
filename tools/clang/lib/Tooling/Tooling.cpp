@@ -34,6 +34,10 @@
 // For chdir, see the comment in ClangTool::run for more information.
 #ifdef LLVM_ON_WIN32
 #  include <direct.h>
+// UWP/MSVC suppresses the deprecated POSIX alias 'chdir'; use _chdir directly.
+#  ifndef chdir
+#    define chdir _chdir
+#  endif
 #else
 #  include <unistd.h>
 #endif

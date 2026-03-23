@@ -82,7 +82,7 @@ option(HLSL_ENABLE_FIXED_VER "Reads version information from a file." OFF) # HLS
 
 option(HLSL_ENABLE_ANALYZE "Enables compiler analysis during compilation." OFF) # HLSL Change
 option(HLSL_OPTIONAL_PROJS_IN_DEFAULT "Include optional projects in default build target." OFF) # HLSL Change
-option(HLSL_BUILD_DXILCONV "Include DXBC to DXIL converter and tools." ON) # HLSL Change
+option(HLSL_BUILD_DXILCONV "Include DXBC to DXIL converter and tools." OFF) # HLSL Change
 
 option(HLSL_ENABLE_DEBUG_ITERATORS "Disable debug iterators for faster debug and to remove some additional allocations with improper noexcept attribution" OFF) # HLSL Change
 
@@ -395,9 +395,9 @@ option(LLVM_INCLUDE_EXAMPLES "Generate build targets for the LLVM examples" ON)
 
 option(LLVM_BUILD_TESTS
   "Build LLVM unit tests. If OFF, just generate build targets." OFF)
-option(LLVM_INCLUDE_TESTS "Generate build targets for the LLVM unit tests." ON)
+option(LLVM_INCLUDE_TESTS "Generate build targets for the LLVM unit tests." OFF)
 
-option(HLSL_INCLUDE_TESTS  "Generate build targets for the HLSL unit tests." ON)
+option(HLSL_INCLUDE_TESTS  "Generate build targets for the HLSL unit tests." OFF)
 
 option (LLVM_BUILD_DOCS "Build the llvm documentation." OFF)
 option (LLVM_INCLUDE_DOCS "Generate build targets for llvm documentation." ON)

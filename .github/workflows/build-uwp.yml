@@ -1,0 +1,61 @@
+name: Build UWP Artifacts
+
+on: [push, pull_request]
+
+jobs:
+  build-uwp:
+    name: UWP x64 Release
+    runs-on: windows-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Disable Windows Defender realtime protection
+        shell: pwsh
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: uwp-patch
+          submodules: recursive
+
+      - name: Configure CMake (UWP)
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -G "Visual Studio 17 2022" \
+            -A x64 \
+            -C cmake/caches/PredefinedParams.cmake \
+            -DHLSL_BUILD_DXILCONV=OFF \
+            -DCMAKE_SYSTEM_NAME=WindowsStore \
+            -DCMAKE_SYSTEM_VERSION="10.0.19041.0" \
+            -DWINAPI_FAMILY=WINAPI_FAMILY_APP \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target dxcompiler dxildll
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          $outDir = "artifacts\uwp-x64-Release"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+
+          # Copy the DLL and import lib produced by the build
+          Get-ChildItem -Path "build\Release" -Include "dxcompiler.dll","dxcompiler.lib","dxcompiler.pdb","dxil.dll","dxil.lib","dxil.pdb" -Recurse `
+            | Copy-Item -Destination $outDir
+
+          # Also grab dxcapi.h so consumers have everything they need
+          Copy-Item "include\dxc\dxcapi.h" -Destination $outDir
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxcompiler-uwp-x64-Release
+          path: artifacts/uwp-x64-Release/
+          if-no-files-found: error
+          retention-days: 30
