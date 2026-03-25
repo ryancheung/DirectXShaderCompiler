@@ -41,6 +41,11 @@ void User::replaceUsesOfWith(Value *From, Value *To) {
 //===----------------------------------------------------------------------===//
 
 void User::allocHungoffUses(unsigned N, bool IsPhi) {
+  // MSVC UWP project templates enable /sdl by default, which causes the
+  // runtime to zero-initialize object memory after operator new, wiping out
+  // the HasHungOffUses flag written by User::operator new(size_t). Restore it
+  // here; this function is only called for hung-off-uses subclasses.
+  HasHungOffUses = true;
   assert(HasHungOffUses && "alloc must have hung off uses");
 
   static_assert(AlignOf<Use>::Alignment >= AlignOf<Use::UserRef>::Alignment,
@@ -61,6 +66,7 @@ void User::allocHungoffUses(unsigned N, bool IsPhi) {
 }
 
 void User::growHungoffUses(unsigned NewNumUses, bool IsPhi) {
+  HasHungOffUses = true; // Guard against MSVC /sdl zero-init (see allocHungoffUses).
   assert(HasHungOffUses && "realloc must have hung off uses");
 
   unsigned OldNumUses = getNumOperands();
